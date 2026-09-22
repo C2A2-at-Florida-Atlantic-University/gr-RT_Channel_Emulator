@@ -1,0 +1,1625 @@
+options:
+  parameters:
+    author: ''
+    catch_exceptions: 'True'
+    category: '[GRC Hier Blocks]'
+    cmake_opt: ''
+    comment: Shared GLFSR vector -> RT -> standard GNU Radio blocks for periodic L-tap
+      LS, primary RT tap-energy SNR, and secondary repeated-probe SNR.
+    copyright: ''
+    description: Standard-block GLFSR correlation and exact LS correction; only RT
+      is custom. Amplitude controls are outside the RT block.
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: channel_estimation_demo
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: GLFSR / LS Channel Estimation - FAU
+    window_size: (1200,1000)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [0, 8.0]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: comparison_hz
+  id: variable
+  parameters:
+    comment: LS estimates per second; each solve uses consecutive IQ samples.
+    value: '5.0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [352, 16.0]
+    rotation: 0
+    state: enabled
+- name: correlation_weights
+  id: variable
+  parameters:
+    comment: conj(FFT(probe))/(N*M); validates the GLFSR autocorrelation needed by
+      LS.
+    value: glfsr_correlation_spectrum(glfsr, num_taps, periods_per_estimate)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1040, 16.0]
+    rotation: 0
+    state: enabled
+- name: glfsr
+  id: variable
+  parameters:
+    comment: Shared 255-sample bipolar probe; used unchanged by Vector Source and
+      LS.
+    value: (1,-1,1,1,-1,-1,-1,1,1,1,1,-1,1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,-1,-1,1,-1,-1,-1,-1,1,-1,1,-1,-1,1,1,1,1,1,-1,1,-1,1,-1,1,-1,1,1,1,-1,-1,-1,-1,-1,1,1,-1,-1,-1,1,-1,1,-1,1,1,-1,-1,1,1,-1,-1,1,-1,1,1,1,1,1,1,-1,1,1,1,1,-1,-1,1,1,-1,1,1,1,-1,1,1,1,-1,-1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,-1,-1,1,-1,-1,1,-1,1,1,-1,1,-1,-1,-1,1,1,-1,-1,1,1,1,-1,-1,1,1,1,1,-1,-1,-1,1,1,-1,1,1,-1,-1,-1,-1,1,-1,-1,-1,1,-1,1,1,1,-1,1,-1,1,1,1,1,-1,1,1,-1,1,1,1,1,1,-1,-1,-1,-1,1,1,-1,1,-1,-1,1,1,-1,1,-1,1,1,-1,1,1,-1,1,-1,1,-1,-1,-1,-1,-1,1,-1,-1,1,1,1,-1,1,1,-1,-1,1,-1,-1,1,-1,-1,1,1,-1,-1,-1,-1,-1,-1,1,1,1,-1,1,-1,-1,1,-1,-1,-1,1,1,1,-1,-1,-1,1,-1,-1,-1,-1,-1,-1,-1)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [936, 16.0]
+    rotation: 0
+    state: enabled
+- name: l_max
+  id: variable
+  parameters:
+    comment: ''
+    value: '16'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [496, 16.0]
+    rotation: 0
+    state: enabled
+- name: l_min
+  id: variable
+  parameters:
+    comment: ''
+    value: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [440, 16.0]
+    rotation: 0
+    state: enabled
+- name: noise_voltage
+  id: variable_qtgui_range
+  parameters:
+    comment: Linear complex RMS amplitude sigma; noise power = sigma**2; zero disables
+      noise.
+    gui_hint: 2,0,1,3
+    label: Noise Voltage (linear RMS)
+    min_len: '300'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '0.001'
+    stop: '1'
+    value: '0.001'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [144, 452.0]
+    rotation: 0
+    state: enabled
+- name: num_taps
+  id: variable
+  parameters:
+    comment: Shared RT and LS vector length, including zero taps. Change the lag range
+      and regenerate.
+    value: l_max - l_min + 1
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [560, 16.0]
+    rotation: 0
+    state: enabled
+- name: periods_per_estimate
+  id: variable
+  parameters:
+    comment: 'M: consecutive periods averaged per LS estimate.'
+    value: '8'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [832, 16.0]
+    rotation: 0
+    state: enabled
+- name: probe_len
+  id: variable
+  parameters:
+    comment: 'N: samples in one known probe period.'
+    value: len(glfsr)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [280, 16.0]
+    rotation: 0
+    state: enabled
+- name: rx_amplitude
+  id: variable_qtgui_range
+  parameters:
+    comment: External RX multiplier scales both received signal and noise.
+    gui_hint: 1,0,1,3
+    label: RX Amplitude (linear)
+    min_len: '300'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '1'
+    stop: '100'
+    value: '1'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [280, 452.0]
+    rotation: 0
+    state: enabled
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: Complex samples per second; not the GUI refresh rate.
+    value: '1000000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [128, 16.0]
+    rotation: 0
+    state: enabled
+- name: sample_offset
+  id: variable
+  parameters:
+    comment: Known GNU Radio 3.10.12 RT startup advance; compensate using Delay.
+    value: max(2, num_taps) + 1
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [632, 16.0]
+    rotation: 0
+    state: enabled
+- name: tx_amplitude
+  id: variable_qtgui_range
+  parameters:
+    comment: External TX multiplier before propagation and noise.
+    gui_hint: 0,0,1,3
+    label: TX Amplitude (linear)
+    min_len: '300'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '0'
+    step: '1'
+    stop: '100'
+    value: '1'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [16, 452.0]
+    rotation: 0
+    state: enabled
+- name: window_decimation
+  id: variable
+  parameters:
+    comment: Keep whole observation windows; do not decimate samples within a period.
+    value: max(1, round(samp_rate / (window_size * comparison_hz)))
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1152, 16.0]
+    rotation: 0
+    state: enabled
+- name: window_size
+  id: variable
+  parameters:
+    comment: Consecutive samples per LS estimate (8 complete periods = 2040 samples).
+    value: periods_per_estimate * probe_len
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [200, 16.0]
+    rotation: 0
+    state: enabled
+- name: add_correction
+  id: blocks_add_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 12. r[j] + c; removes the GLFSR correlation sidelobe bias.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [816, 308.0]
+    rotation: 0
+    state: enabled
+- name: align_rx
+  id: blocks_delay
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 2. Restore probe phase by delaying RX by the known startup advance.
+    delay: sample_offset
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_ports: '1'
+    showports: 'False'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [776, 180.0]
+    rotation: 0
+    state: enabled
+- name: correlate
+  id: blocks_multiply_const_vxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 8. Multiply by conj(FFT(known probe))/(N*M).
+    const: correlation_weights
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+    vlen: probe_len
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1136, 248.0]
+    rotation: 180
+    state: enabled
+- name: correlation_stream
+  id: blocks_vector_to_stream
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: probe_len
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [848, 252.0]
+    rotation: 180
+    state: enabled
+- name: fft_received
+  id: fft_vxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 7. FFT of received period sum; no window or frequency shift.
+    fft_size: probe_len
+    forward: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    nthreads: '1'
+    shift: 'False'
+    type: complex
+    window: '[]'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1304, 232.0]
+    rotation: 180
+    state: enabled
+- name: ifft_correlation
+  id: fft_vxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 9. Inverse FFT yields average correlation r = X^H y.
+    fft_size: probe_len
+    forward: 'False'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    nthreads: '1'
+    shift: 'False'
+    type: complex
+    window: '[]'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [984, 232.0]
+    rotation: 180
+    state: enabled
+- name: import_ls_setup
+  id: import
+  parameters:
+    alias: ''
+    comment: ''
+    imports: from rt_channel_emulation.estimation import glfsr_correlation_spectrum
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [712, 24.0]
+    rotation: 0
+    state: enabled
+- name: keep_lags
+  id: blocks_keep_m_in_n
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 10. Keep the L correlations for the modeled FIR indices 0..L-1.
+    m: num_taps
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    n: probe_len
+    offset: '0'
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [736, 244.0]
+    rotation: 180
+    state: enabled
+- name: ls_magnitude
+  id: blocks_complex_to_mag
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: num_taps
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1144, 324.0]
+    rotation: 0
+    state: enabled
+- name: ls_tap_stream
+  id: blocks_vector_to_stream
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Unpack one LS magnitude vector in tap order for one stem-plot frame.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: num_taps
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1272, 324.0]
+    rotation: 0
+    state: enabled
+- name: ls_taps
+  id: blocks_stream_to_vector
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 14. One vector of L complex LS taps.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: num_taps
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1024, 324.0]
+    rotation: 0
+    state: enabled
+- name: model_snr_db
+  id: blocks_nlog10_ff
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Primary SNR 5. 10*log10(P_signal/P_noise), in dB; tap-energy prediction,
+      not a received-sample measurement. Power floors limit zero-input readings.
+    k: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    n: '10'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1304, 636.0]
+    rotation: 0
+    state: enabled
+- name: model_snr_ratio
+  id: blocks_multiply_const_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Primary SNR 4. Divide by known received noise power (RX*sigma)^2. RX
+      scales signal and noise equally, so it cancels above the numerical floor.
+    const: 1.0 / max((rx_amplitude * noise_voltage)**2, 1e-20)
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1136, 684.0]
+    rotation: 0
+    state: enabled
+- name: model_snr_signal_floor
+  id: blocks_max_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Primary SNR 3. Guard log(0) with the existing 1e-20 power floor. No signal,
+      zero noise, or RX=0 gives a numerical placeholder, not physical SNR.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+    vlen_out: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1048, 668.0]
+    rotation: 0
+    state: enabled
+- name: model_snr_signal_scale
+  id: blocks_multiply_const_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Primary SNR 2b. Predicted received signal power = (TX*RX)^2*sum(|h|^2).
+      Both controls are linear amplitudes, so square their product for power.
+    const: (tx_amplitude * rx_amplitude)**2
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [888, 668.0]
+    rotation: 0
+    state: enabled
+- name: model_snr_tap_energy
+  id: blocks_integrate_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Primary SNR 2a. Sum L squared tap magnitudes = sum(|h|^2). Zero-mean,
+      unit-power uncorrelated-input assumption; finite GLFSR is approximate.
+    decim: num_taps
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [760, 596.0]
+    rotation: 0
+    state: enabled
+- name: model_snr_tap_power
+  id: blocks_complex_to_mag_squared
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Primary SNR 1a. Squared magnitude of each complex RT tap, |h[k]|^2. Calculate
+      power directly, without a magnitude/square-root approximation.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: num_taps
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [480, 596.0]
+    rotation: 0
+    state: enabled
+- name: model_snr_tap_stream
+  id: blocks_vector_to_stream
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Primary SNR 1b. Unpack each L-element tap-power vector for Integrate.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: num_taps
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [616, 596.0]
+    rotation: 0
+    state: enabled
+- name: normalize_ls
+  id: blocks_multiply_const_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: '13. Exact L-tap LS: h[j] = (r[j] + c)/(N+1).'
+    const: 1.0 / (probe_len + 1)
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [896, 324.0]
+    rotation: 0
+    state: enabled
+- name: period_vectors
+  id: blocks_stream_to_vector
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 4. One vector contains one complete probe period.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: probe_len
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [984, 180.0]
+    rotation: 0
+    state: enabled
+- name: probe_source
+  id: blocks_vector_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 1. Repeating known probe; imaginary part is zero.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    repeat: 'True'
+    tags: '[]'
+    type: complex
+    vector: glfsr
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [0, 156.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_time_sink_x_0
+  id: qtgui_time_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'True'
+    axislabels: 'True'
+    color1: blue
+    color10: dark blue
+    color2: red
+    color3: green
+    color4: black
+    color5: cyan
+    color6: magenta
+    color7: yellow
+    color8: dark red
+    color9: dark green
+    comment: Primary RT tap-energy prediction and secondary repeated-probe estimate.
+      Both emit at the decimated estimate rate; updates are not sample-synchronized.
+    ctrlpanel: 'False'
+    entags: 'True'
+    grid: 'True'
+    gui_hint: 5,0,1,3
+    label1: SNR (model)
+    label10: Signal 10
+    label2: SNR (measured)
+    label3: Signal 3
+    label4: Signal 4
+    label5: Signal 5
+    label6: Signal 6
+    label7: Signal 7
+    label8: Signal 8
+    label9: Signal 9
+    legend: 'True'
+    marker1: '-1'
+    marker10: '-1'
+    marker2: '-1'
+    marker3: '-1'
+    marker4: '-1'
+    marker5: '-1'
+    marker6: '-1'
+    marker7: '-1'
+    marker8: '-1'
+    marker9: '-1'
+    name: SNR comparison
+    nconnections: '2'
+    size: '5'
+    srate: samp_rate / (window_size * window_decimation)
+    stemplot: 'False'
+    style1: '1'
+    style10: '1'
+    style2: '1'
+    style3: '1'
+    style4: '1'
+    style5: '1'
+    style6: '1'
+    style7: '1'
+    style8: '1'
+    style9: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: float
+    update_time: '0.1'
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    ylabel: SNR
+    ymax: '1'
+    ymin: '-1'
+    yunit: dB
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1416, 452.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_time_sink_x_0_0
+  id: qtgui_time_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'True'
+    axislabels: 'True'
+    color1: blue
+    color10: dark blue
+    color2: red
+    color3: green
+    color4: black
+    color5: cyan
+    color6: magenta
+    color7: yellow
+    color8: dark red
+    color9: dark green
+    comment: Received samples after the external RX amplitude multiplier.
+    ctrlpanel: 'False'
+    entags: 'True'
+    grid: 'False'
+    gui_hint: 4,0,1,3
+    label1: I
+    label10: Signal 10
+    label2: Q
+    label3: Signal 3
+    label4: Signal 4
+    label5: Signal 5
+    label6: Signal 6
+    label7: Signal 7
+    label8: Signal 8
+    label9: Signal 9
+    legend: 'True'
+    marker1: '-1'
+    marker10: '-1'
+    marker2: '-1'
+    marker3: '-1'
+    marker4: '-1'
+    marker5: '-1'
+    marker6: '-1'
+    marker7: '-1'
+    marker8: '-1'
+    marker9: '-1'
+    name: '"RX Signal"'
+    nconnections: '1'
+    size: '1024'
+    srate: samp_rate
+    stemplot: 'False'
+    style1: '1'
+    style10: '1'
+    style2: '1'
+    style3: '1'
+    style4: '1'
+    style5: '1'
+    style6: '1'
+    style7: '1'
+    style8: '1'
+    style9: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: complex
+    update_time: '0.10'
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    ylabel: Amplitude
+    ymax: '1'
+    ymin: '-1'
+    yunit: '""'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [800, 96.0]
+    rotation: 0
+    state: enabled
+- name: repeat_correction
+  id: blocks_repeat
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 11c. Repeat c once for each of the L correlations.
+    interp: num_taps
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [696, 340.0]
+    rotation: 0
+    state: enabled
+- name: rt_channel
+  id: rt_channel_emulation_rt_channel_emulation
+  parameters:
+    affinity: ''
+    alias: ''
+    carrier_frequency_hz: 2.4e9
+    comment: ''
+    epsilon: '1.0'
+    frequency_offset: '0.0'
+    l_max: l_max
+    l_min: l_min
+    max_depth: '5'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    noise_voltage: noise_voltage
+    rx_pattern: iso
+    rx_polarization: V
+    rx_position: '[28.0, 25.0, 1.0]'
+    sample_rate: samp_rate
+    scene_path: /Users/josea/Workspaces/gr-RT_channel_emulation/python/rt_channel_emulation/scenes/FAU_scene/FAU_scene.xml
+    seed: '42'
+    tap_decimation: window_size * window_decimation
+    tap_output: 'True'
+    tx_pattern: iso
+    tx_polarization: V
+    tx_position: '[28.0, 26.0, 1.0]'
+    visualize: 'True'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [376, 116.0]
+    rotation: 0
+    state: enabled
+- name: rt_magnitude
+  id: blocks_complex_to_mag
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: num_taps
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [688, 388.0]
+    rotation: 0
+    state: enabled
+- name: rt_tap_stream
+  id: blocks_vector_to_stream
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Unpack one RT magnitude vector in tap order for one stem-plot frame.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: num_taps
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [824, 388.0]
+    rotation: 0
+    state: enabled
+- name: rx_position_socket
+  id: network_socket_pdu
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: One UDP datagram = RX [X, Y, Z] JSON array; updates are independent of
+      TX.
+    host: 127.0.0.1
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mtu: '1024'
+    port: '52002'
+    tcp_no_delay: 'False'
+    type: UDP_SERVER
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [128, 344.0]
+    rotation: 0
+    state: enabled
+- name: rx_scale
+  id: blocks_multiply_const_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: External RX amplitude scales signal AND channel noise; it does not improve
+      SNR.
+    const: rx_amplitude
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [616, 180.0]
+    rotation: 0
+    state: enabled
+- name: scale_correction
+  id: blocks_multiply_const_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 11b. LS correction c = sum(r)/(N+1-L).
+    const: 1.0 / (probe_len + 1 - num_taps)
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [568, 340.0]
+    rotation: 0
+    state: enabled
+- name: select_windows
+  id: blocks_keep_one_in_n
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 6. Limit processing to approximately comparison_hz estimates/s.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    n: window_decimation
+    type: complex
+    vlen: probe_len
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1256, 176.0]
+    rotation: 0
+    state: enabled
+- name: skip_startup
+  id: blocks_skiphead
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 3. Discard complete startup periods; retain phase-zero framing.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: probe_len * (1 + sample_offset // probe_len)
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [872, 180.0]
+    rotation: 0
+    state: enabled
+- name: snr_db
+  id: blocks_nlog10_ff
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Secondary SNR 8. 10*log10(P_signal/P_noise) measured from repeated RX
+      samples, in dB. Not Eb/N0 and not LS processing gain.
+    k: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    n: '10'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1392, 556.0]
+    rotation: 0
+    state: enabled
+- name: snr_difference
+  id: blocks_sub_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 2. d[n]=y[n]-y[n-N]. Repeated signal cancels; independent noise variances
+      add.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [576, 428.0]
+    rotation: 0
+    state: enabled
+- name: snr_difference_power
+  id: blocks_complex_to_mag_squared
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 3. Squared complex magnitude |d[n]|^2, not magnitude.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [784, 444.0]
+    rotation: 0
+    state: enabled
+- name: snr_noise_floor
+  id: blocks_max_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Numerical guard only, not injected noise. Zero-noise readings are floor-limited,
+      not finite physical SNR.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+    vlen_out: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1304, 444.0]
+    rotation: 0
+    state: enabled
+- name: snr_noise_mean
+  id: blocks_multiply_const_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 5. P_noise = mean(|y[n]-y[n-N]|^2)/2. Estimates noise before LS averaging.
+    const: 0.5 / window_size
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1040, 444.0]
+    rotation: 0
+    state: enabled
+- name: snr_noise_sum
+  id: blocks_integrate_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 4. Sum one window of M*N consecutive difference powers.
+    decim: window_size
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [912, 444.0]
+    rotation: 0
+    state: enabled
+- name: snr_period_delay
+  id: blocks_delay
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 1. Delay RX by N=len(glfsr). A static channel preserves the known
+      probe period.
+    delay: probe_len
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_ports: '1'
+    showports: 'False'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [472, 460.0]
+    rotation: 0
+    state: enabled
+- name: snr_power_floor
+  id: analog_const_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Numerical floor for Max blocks; this constant is not added to the IQ
+      signal.
+    const: 1e-20
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [992, 604.0]
+    rotation: 0
+    state: enabled
+- name: snr_ratio
+  id: blocks_divide_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 7. Signal-power estimate divided by noise-power estimate.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1304, 540.0]
+    rotation: 0
+    state: enabled
+- name: snr_received_power
+  id: blocks_complex_to_mag_squared
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 3. Total received power samples |y[n]|^2.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [584, 524.0]
+    rotation: 0
+    state: enabled
+- name: snr_select_noise
+  id: blocks_keep_one_in_n
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Keep whole power estimates at the same rate on both branches.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    n: window_decimation
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1176, 444.0]
+    rotation: 0
+    state: enabled
+- name: snr_select_total
+  id: blocks_keep_one_in_n
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Identical window selection to the noise branch.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    n: window_decimation
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [976, 524.0]
+    rotation: 0
+    state: enabled
+- name: snr_signal_floor
+  id: blocks_max_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Numerical guard for nonpositive signal estimates. Near no signal the
+      SNR reading is unreliable.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+    vlen_out: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1224, 524.0]
+    rotation: 0
+    state: enabled
+- name: snr_signal_power
+  id: blocks_sub_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 6. P_signal = P_total - P_noise; finite-window estimates may be negative
+      near no signal.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1088, 524.0]
+    rotation: 0
+    state: enabled
+- name: snr_skip_noise
+  id: blocks_skiphead
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Discard channel and one-period delay startup; same sample indices as
+      the total-power branch.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: probe_len * (2 + sample_offset // probe_len)
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [672, 444.0]
+    rotation: 0
+    state: enabled
+- name: snr_skip_signal
+  id: blocks_skiphead
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Match the noise branch startup discard; retain consecutive samples, not
+      averaged periods.
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: probe_len * (2 + sample_offset // probe_len)
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [472, 524.0]
+    rotation: 0
+    state: enabled
+- name: snr_total_mean
+  id: blocks_multiply_const_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 5. P_total = mean(|y[n]|^2), including signal and noise.
+    const: 1.0 / window_size
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [840, 524.0]
+    rotation: 0
+    state: enabled
+- name: snr_total_sum
+  id: blocks_integrate_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: SNR 4. Sum the corresponding M*N received-signal powers.
+    decim: window_size
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [712, 524.0]
+    rotation: 0
+    state: enabled
+- name: sum_lags
+  id: blocks_integrate_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 11a. Sum the L correlations belonging to this estimate.
+    decim: num_taps
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [624, 252.0]
+    rotation: 180
+    state: enabled
+- name: sum_periods
+  id: blocks_integrate_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: 5. Sum M consecutive periods; correlation_weights includes division by
+      M.
+    decim: periods_per_estimate
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+    vlen: probe_len
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1128, 176.0]
+    rotation: 0
+    state: enabled
+- name: tap_plot
+  id: qtgui_time_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'True'
+    axislabels: 'True'
+    color1: dark blue
+    color10: dark blue
+    color2: red
+    color3: green
+    color4: black
+    color5: cyan
+    color6: magenta
+    color7: yellow
+    color8: dark red
+    color9: dark green
+    comment: One L-tap vector per frame; time means FIR delay j/samp_rate, not elapsed
+      run time. Sionna lag = l_min+j. Fixed Y min keeps the stem baseline at zero;
+      increase Y max for larger taps.
+    ctrlpanel: 'False'
+    entags: 'False'
+    grid: 'True'
+    gui_hint: 3,0,1,3
+    label1: LS estimate
+    label10: ''
+    label2: RT propagation reference
+    label3: ''
+    label4: ''
+    label5: ''
+    label6: ''
+    label7: ''
+    label8: ''
+    label9: ''
+    legend: 'False'
+    marker1: '0'
+    marker10: '-1'
+    marker2: '0'
+    marker3: '-1'
+    marker4: '-1'
+    marker5: '-1'
+    marker6: '-1'
+    marker7: '-1'
+    marker8: '-1'
+    marker9: '-1'
+    name: LS vs RT tap magnitudes (time = FIR delay)
+    nconnections: '2'
+    size: num_taps
+    srate: samp_rate
+    stemplot: 'True'
+    style1: '1'
+    style10: '1'
+    style2: '1'
+    style3: '1'
+    style4: '1'
+    style5: '1'
+    style6: '1'
+    style7: '1'
+    style8: '1'
+    style9: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: float
+    update_time: '0.1'
+    width1: '2'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    ylabel: Tap magnitude
+    ymax: '1'
+    ymin: '0.0'
+    yunit: '""'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1400, 324.0]
+    rotation: 0
+    state: enabled
+- name: throttle
+  id: blocks_throttle2
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    ignoretag: 'True'
+    limit: auto
+    maximum: '0.1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samples_per_second: samp_rate
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [104, 160.0]
+    rotation: 0
+    state: enabled
+- name: tx_position_socket
+  id: network_socket_pdu
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: One UDP datagram = TX [X, Y, Z] JSON array in scene-local metres.
+    host: 127.0.0.1
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    mtu: '1024'
+    port: '52001'
+    tcp_no_delay: 'False'
+    type: UDP_SERVER
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [128, 248.0]
+    rotation: 0
+    state: enabled
+- name: tx_scale
+  id: blocks_multiply_const_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: External experimenter-controlled TX amplitude; RT taps are unchanged.
+    const: tx_amplitude
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [216, 164.0]
+    rotation: 0
+    state: enabled
+- name: tx_scale_0_0
+  id: blocks_multiply_const_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: Scale RT magnitudes by known TX*RX amplitudes for the tap plot. The RT
+      block's propagation taps remain unchanged.
+    const: tx_amplitude * rx_amplitude
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [960, 388.0]
+    rotation: 0
+    state: enabled
+
+connections:
+- [add_correction, '0', normalize_ls, '0']
+- [align_rx, '0', skip_startup, '0']
+- [correlate, '0', ifft_correlation, '0']
+- [correlation_stream, '0', keep_lags, '0']
+- [fft_received, '0', correlate, '0']
+- [ifft_correlation, '0', correlation_stream, '0']
+- [keep_lags, '0', add_correction, '0']
+- [keep_lags, '0', sum_lags, '0']
+- [ls_magnitude, '0', ls_tap_stream, '0']
+- [ls_tap_stream, '0', tap_plot, '0']
+- [ls_taps, '0', ls_magnitude, '0']
+- [model_snr_db, '0', qtgui_time_sink_x_0, '0']
+- [model_snr_ratio, '0', model_snr_db, '0']
+- [model_snr_signal_floor, '0', model_snr_ratio, '0']
+- [model_snr_signal_scale, '0', model_snr_signal_floor, '0']
+- [model_snr_tap_energy, '0', model_snr_signal_scale, '0']
+- [model_snr_tap_power, '0', model_snr_tap_stream, '0']
+- [model_snr_tap_stream, '0', model_snr_tap_energy, '0']
+- [normalize_ls, '0', ls_taps, '0']
+- [period_vectors, '0', sum_periods, '0']
+- [probe_source, '0', throttle, '0']
+- [repeat_correction, '0', add_correction, '1']
+- [rt_channel, '0', rx_scale, '0']
+- [rt_channel, '1', model_snr_tap_power, '0']
+- [rt_channel, '1', rt_magnitude, '0']
+- [rt_magnitude, '0', rt_tap_stream, '0']
+- [rt_tap_stream, '0', tx_scale_0_0, '0']
+- [rx_position_socket, pdus, rt_channel, rx_position]
+- [rx_scale, '0', align_rx, '0']
+- [rx_scale, '0', qtgui_time_sink_x_0_0, '0']
+- [rx_scale, '0', snr_difference, '0']
+- [rx_scale, '0', snr_period_delay, '0']
+- [rx_scale, '0', snr_skip_signal, '0']
+- [scale_correction, '0', repeat_correction, '0']
+- [select_windows, '0', fft_received, '0']
+- [skip_startup, '0', period_vectors, '0']
+- [snr_db, '0', qtgui_time_sink_x_0, '1']
+- [snr_difference, '0', snr_skip_noise, '0']
+- [snr_difference_power, '0', snr_noise_sum, '0']
+- [snr_noise_floor, '0', snr_ratio, '1']
+- [snr_noise_mean, '0', snr_select_noise, '0']
+- [snr_noise_sum, '0', snr_noise_mean, '0']
+- [snr_period_delay, '0', snr_difference, '1']
+- [snr_power_floor, '0', model_snr_signal_floor, '1']
+- [snr_power_floor, '0', snr_noise_floor, '1']
+- [snr_power_floor, '0', snr_signal_floor, '1']
+- [snr_ratio, '0', snr_db, '0']
+- [snr_received_power, '0', snr_total_sum, '0']
+- [snr_select_noise, '0', snr_noise_floor, '0']
+- [snr_select_noise, '0', snr_signal_power, '1']
+- [snr_select_total, '0', snr_signal_power, '0']
+- [snr_signal_floor, '0', snr_ratio, '0']
+- [snr_signal_power, '0', snr_signal_floor, '0']
+- [snr_skip_noise, '0', snr_difference_power, '0']
+- [snr_skip_signal, '0', snr_received_power, '0']
+- [snr_total_mean, '0', snr_select_total, '0']
+- [snr_total_sum, '0', snr_total_mean, '0']
+- [sum_lags, '0', scale_correction, '0']
+- [sum_periods, '0', select_windows, '0']
+- [throttle, '0', tx_scale, '0']
+- [tx_position_socket, pdus, rt_channel, tx_position]
+- [tx_scale, '0', rt_channel, '0']
+- [tx_scale_0_0, '0', tap_plot, '1']
+
+metadata:
+  file_format: 1
+  grc_version: 3.10.12.0

@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rt-channel-emulation"
+version = "0.1.0"
+description = "Minimal GNU Radio 3.10 OOT module for Sionna RT channel emulation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "sionna-rt>=2.0,<3",
+]
+
+# Optional notebook tools; none are block runtime requirements.
+[project.optional-dependencies]
+profiling = ["matplotlib>=3.8", "ipykernel>=6", "nbclient>=0.10"]
+ota = ["huggingface-hub>=0.34", "pyarrow>=18"]
+
+[tool.setuptools]
+package-dir = {"" = "python"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.setuptools.package-data]
+rt_channel_emulation = [
+  "scenes/FAU_scene/*.xml",
+  "scenes/FAU_scene/meshes/*.ply",
+  "scenes/POWDER/*.xml",
+  "scenes/POWDER/*.usdc",
+  "scenes/POWDER/meshes/*.ply",
+  "scenes/POWDER/textures/*.exr",
+  "scenes/AERPAW_scene/*.xml",
+  "scenes/AERPAW_scene/meshes/*.ply",
+  "scenes/LOS_empty/*.xml",
+  "scenes/NLOS_box/*.xml",
+  "scenes/NLOS_box/meshes/*.ply",
+]
+
+[tool.setuptools.data-files]
+"share/gnuradio/grc/blocks" = [
+  "grc/rt_channel_emulation_rt_channel_emulation.block.yml",
+]

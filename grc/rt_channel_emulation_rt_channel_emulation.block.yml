@@ -1,0 +1,226 @@
+id: rt_channel_emulation_rt_channel_emulation
+label: RT Channel Emulation
+category: '[Channels]'
+flags: [python]
+
+parameters:
+- id: scene_path
+  label: Scene Path
+  dtype: string
+  default: FAU_scene
+- id: tx_position
+  label: Initial TX Position (m)
+  dtype: raw
+  default: '[28.0, -15.0, 1.0]'
+- id: rx_position
+  label: Initial RX Position (m)
+  dtype: raw
+  default: '[15.0, -21.0, 1.0]'
+- id: sample_rate
+  label: Sample Rate
+  dtype: float
+  default: 1e6
+- id: carrier_frequency_hz
+  label: Carrier Frequency (Hz)
+  dtype: float
+  default: 2.4e9
+- id: max_depth
+  label: Max Depth
+  dtype: int
+  default: 5
+- id: visualize
+  label: Visualize Scene and Paths
+  dtype: bool
+  default: 'False'
+  options: ['False', 'True']
+  option_labels: [Disabled, Enabled]
+- id: noise_voltage
+  label: Noise Voltage
+  dtype: float
+  default: 0.0
+- id: frequency_offset
+  label: Frequency Offset
+  dtype: float
+  default: 0.0
+- id: epsilon
+  label: Timing Offset
+  dtype: float
+  default: 1.0
+- id: l_min
+  label: Tap Start
+  dtype: int
+  default: -6
+- id: l_max
+  label: Tap Stop
+  dtype: int
+  default: 32
+- id: tap_output
+  label: RT Tap Vector Output
+  dtype: bool
+  default: 'False'
+  options: ['False', 'True']
+  option_labels: [Disabled, Enabled]
+- id: tap_decimation
+  label: Samples per RT Tap Vector
+  dtype: int
+  default: 200000
+  hide: ${ 'none' if tap_output else 'all' }
+- id: tx_pattern
+  label: TX Pattern
+  dtype: string
+  default: iso
+- id: tx_polarization
+  label: TX Polarization
+  dtype: string
+  default: V
+- id: rx_pattern
+  label: RX Pattern
+  dtype: string
+  default: iso
+- id: rx_polarization
+  label: RX Polarization
+  dtype: string
+  default: V
+- id: seed
+  label: Ray-Tracing Seed
+  dtype: int
+  default: 42
+
+inputs:
+- label: in
+  domain: stream
+  dtype: complex
+- id: tx_position
+  label: tx_position
+  domain: message
+  optional: true
+- id: rx_position
+  label: rx_position
+  domain: message
+  optional: true
+- id: config
+  label: config
+  domain: message
+  optional: true
+
+outputs:
+- label: out
+  domain: stream
+  dtype: complex
+- label: rt_taps
+  domain: stream
+  dtype: complex
+  vlen: ${ l_max - l_min + 1 }
+  hide: ${ not tap_output }
+- id: channel_estimate
+  label: channel_estimate
+  domain: message
+  optional: true
+
+templates:
+  imports: |-
+    from rt_channel_emulation import RTChannelEmulation
+  make: |-
+    RTChannelEmulation(
+        scene_path=${scene_path},
+        tx_position=${tx_position},
+        rx_position=${rx_position},
+        sample_rate=${sample_rate},
+        carrier_frequency_hz=${carrier_frequency_hz},
+        max_depth=${max_depth},
+        visualize=${visualize},
+        noise_voltage=${noise_voltage},
+        frequency_offset=${frequency_offset},
+        epsilon=${epsilon},
+        l_min=${l_min},
+        l_max=${l_max},
+        tap_output=${tap_output},
+        tap_decimation=${tap_decimation},
+        tx_pattern=${tx_pattern},
+        tx_polarization=${tx_polarization},
+        rx_pattern=${rx_pattern},
+        rx_polarization=${rx_polarization},
+        seed=${seed},
+    )
+  callbacks:
+  - set_scene_path(${scene_path})
+  - set_tx_position(${tx_position})
+  - set_rx_position(${rx_position})
+  - set_sample_rate(${sample_rate})
+  - set_carrier_frequency_hz(${carrier_frequency_hz})
+  - set_max_depth(${max_depth})
+  - set_visualize(${visualize})
+  - set_noise_voltage(${noise_voltage})
+  - set_frequency_offset(${frequency_offset})
+  - set_epsilon(${epsilon})
+  - set_l_min(${l_min})
+  - set_l_max(${l_max})
+  - set_tx_pattern(${tx_pattern})
+  - set_tx_polarization(${tx_polarization})
+  - set_rx_pattern(${rx_pattern})
+  - set_rx_polarization(${rx_polarization})
+  - set_seed(${seed})
+
+documentation: |-
+  Ray-tracing-driven GNU Radio channel model wrapper.
+
+  Primary parameters:
+  - scene_path
+  - tx_position / rx_position (initial [X, Y, Z], scene-local metres)
+  - sample_rate
+  - carrier_frequency_hz
+  - max_depth
+  - visualize (opens the bundled lightweight Qt viewer)
+  - noise_voltage (linear complex RMS noise amplitude; zero disables noise)
+  - frequency_offset
+  - epsilon
+  - l_min / l_max
+  - seed
+
+  Channel-model updates can be sent through the optional message port `config`
+  as a PMT dictionary, including both positions for one atomic trace.
+
+  Optional tx_position and rx_position message ports update one node at a time.
+  Send a PMT numeric vector of three finite real values, e.g.
+  pmt.init_f64vector(3, [28, 26, 1]). The other node keeps its current position.
+  Each accepted update retraces the channel and refreshes taps and visualization.
+  Positions are scene-local XYZ metres, not latitude/longitude/altitude.
+
+  For socket input, connect a standard Socket PDU block (UDP Server) to each
+  position port. Each datagram is one UTF-8 JSON array, e.g. [28, 26, 1].
+  The RT block decodes the PDU's byte payload; no converter block is required.
+  The demo binds TX to 127.0.0.1:52001 and RX to 127.0.0.1:52002.
+  UDP has no delivery/order guarantee; use a rate that ray tracing can sustain.
+  Separate ports are not atomic or sample-synchronized. Invalid messages are
+  logged and ignored. The RT block itself no longer opens network sockets.
+
+  The optional channel_estimate output emits a PMT dictionary at start and
+  after applied updates: taps (propagation only), effective_taps (an identical
+  compatibility alias), revision, positions, sample_rate_hz, l_min, and impairment
+  settings. Schema version 2 uses linear noise_voltage and has no gain fields.
+  It is a model reference, not an RX measurement. Messages do not mark exact
+  stream sample boundaries. Compare static captures with frequency_offset=0
+  and epsilon=1. Connect to Message Debug (store/print) to inspect it.
+
+  Enable RT Tap Vector Output for a second stream port, rt_taps. Each item
+  contains L = l_max-l_min+1 complex propagation taps (excluding noise and
+  external amplitude scaling), in the same order as the channel FIR. Connect it through
+  Complex to Mag (vector length L) to a QT GUI Vector Sink (vector length L).
+  One vector is emitted per tap_decimation received IQ samples, without
+  retracing. Match this decimation to the LS estimator's output interval.
+  Keep sample rate and lag range fixed while running; incompatible settings,
+  nonzero CFO, or epsilon != 1 clear the comparison vector with a warning.
+  Updates are not sample-synchronized with an LS observation window.
+
+  Noise voltage is passed unchanged to GNU Radio's channel_model. For complex
+  Gaussian noise w, E[|w|^2] = noise_voltage^2; each I/Q component has variance
+  noise_voltage^2/2. This is linear sample amplitude, not dB, calibrated volts,
+  or a noise spectral density. Use external Multiply Const blocks for amplitude
+  control. Source: GNU Radio gr-analog/lib/fastnoise_source_impl.cc.
+
+asserts:
+- ${noise_voltage >= 0.0}
+- ${l_max >= l_min}
+- ${tap_decimation >= 1}
+
+file_format: 1
